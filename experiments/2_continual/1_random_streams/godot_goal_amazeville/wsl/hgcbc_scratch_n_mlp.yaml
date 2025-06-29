@@ -1,0 +1,155 @@
+#? the descriptions of most of the following parameters are given in the files they're used
+
+#############
+# HYDRA CFG #
+#############
+
+hydra:
+
+  launcher:
+    n_jobs: 3
+
+  sweeper:
+    params:
+      ++seed: 100, 200, 300
+      ++stream_name: amazeville_random_1, amazeville_random_2
+
+defaults:
+  - _self_
+  - override hydra/launcher: joblib
+
+################
+# TRAINING CFG #
+################
+
+# general
+#########
+
+stream_name: amazeville_random_1
+waysteps: 10
+
+seed: 0
+verbose: true
+
+# configuration of the algorithm
+################################
+
+algo_cfg:
+
+  algorithm: 
+    classname: offbench.algorithms.continual.hbc.hbc_base:HBC_Algorithm
+
+  # general
+  verbose: ${verbose}
+  logging_frequency: 1000
+  log_infos: false
+  start_from_task_idx: 0
+
+  # training
+  train_seed: ${seed}
+  train_device: cpu
+  train_gradient_steps: 100000
+  train_save_every: 50000
+  train_reset_args: null
+  train_mode_args: null
+
+  # evaluation
+  eval_agent: true
+  eval_first: false
+  eval_seed: ${seed}
+  eval_device: cpu
+  eval_every: 100000
+  eval_n_episodes: 100
+  eval_max_episode_steps: 300
+  eval_gamma: 0.99
+  eval_reset_args:
+    batch_size: 20
+    exe_type: ubuntu_2204
+  eval_mode_args:
+    stochastic: false
+  
+  # visualization
+  visu_task_idx: 0
+  visu_seed: ${seed}
+  visu_device: cpu
+  visu_n_episodes: 100
+  visu_max_episode_steps: 300
+  visu_reset_args:
+    batch_size: 20
+    exe_type: ubuntu_2204
+  visu_mode_args:
+    stochastic: false
+  
+  # sampler
+  sampler_cfg:
+    classname: offbench.algorithms.singletask.hbc.samplers.her_sampler:HBC_HER_Sampler
+    waysteps: ${waysteps}
+    her_strategy: exponential
+    her_strategy_params:
+      temperature: 150.0
+    batch_size: 64                                            #? batch size
+    context_size: 0                                           #? how many previous frames to use (0 == just use the current frame)
+    percentage_episodes: 1.0                                  #? how much of the dataset to use (1.0 == 100%)
+    padding_size_begin: ${algo_cfg.sampler_cfg.context_size}  #? padding size at the beginning of the episodes
+    padding_size_end: 0                                       #? padding size at the end of the episodes
+    padding_value_begin: 0                                    #? padding value at the beginning of the episodes
+    padding_value_end: 0                                      #? padding value at the end of the episodes
+    reward_scale_w: 0.0                                       #? reward scale weight
+    reward_scale_b: -1.0                                      #? reward scale bias
+    seed: ${seed}                                             #? seed for the sampler                   
+    device: ${algo_cfg.train_device}                          #? device for the sampler
+
+# configuration of the agent
+############################
+
+agent_cfg:
+
+  classname: offbench.core.agent:Agent
+
+  agent_id: hgcbc_scratch_n_mlp
+
+  policy_cfg:
+
+    classname: offbench.algorithms.continual.hbc.policies.scratch_mlp:MLP
+
+    env: null
+    seed: ${seed}
+
+    # continual specific
+    grow: true
+
+    # hgcbc specific
+    waysteps: ${waysteps}
+
+    # all networks
+    device: ${algo_cfg.train_device}
+    
+    # high policy network
+    high_dropout: 0.1
+    high_init_scaling: 0.1
+    high_hidden_sizes: [256, 256]
+  
+    # high policy optimizer
+    high_optimizer_cfg:
+      classname: torch.optim.Adam
+      lr: 3e-4
+
+    # high_policy scheduler
+    high_scheduler_cfg:
+      classname: torch.optim.lr_scheduler.CosineAnnealingLR
+      T_max: ${algo_cfg.train_gradient_steps}
+    
+    # high policy network
+    low_dropout: 0.1
+    low_init_scaling: 0.1
+    low_hidden_sizes: [256, 256]
+    
+    # low policy optimizer
+    low_optimizer_cfg:
+      classname: torch.optim.Adam
+      lr: 3e-4
+    
+    # low_policy scheduler
+    low_scheduler_cfg:
+      classname: torch.optim.lr_scheduler.CosineAnnealingLR
+      T_max: ${algo_cfg.train_gradient_steps}

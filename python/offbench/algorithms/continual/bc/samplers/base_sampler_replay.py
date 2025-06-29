@@ -1,0 +1,180 @@
+import numpy as np
+import torch
+
+from offbench.core.data import EpisodesDB, SamplerMulti
+from tqdm import tqdm
+from typing import Dict, List, Optional, Union
+
+
+
+class BC_Base_Replay_Sampler(SamplerMulti):
+
+    """
+    Sampler for Behavioural Cloning (BC) Algorithm with Experience Replay.
+
+    Args:
+        episodes_dbs (List[EpisodesDB]): The databases of episodes.
+        percentage_episodes: (int): The percentage of episodes to use. Defaults to 1.
+        batch_size (int): The batch size. Defaults to 1.
+        context_size (int): The context size. Defaults to 0.
+        padding_size_begin (int): The padding size at the beginning of the episodes. Defaults to 0.
+        padding_size_end (int): The padding size at the end of the episodes. Defaults to 0.
+        padding_value_begin (float): The padding value at the beginning of the episodes. Defaults to 0.
+        padding_value_end (float): The padding value at the end of the episodes. Defaults to 0.
+        reward_scale_w (float): The reward scale weight. Defaults to 1.
+        reward_scale_b (float): The reward scale bias. Defaults to 0.
+        seed (Optional[int]): The seed for the random number generators. Defaults to None.
+        device (Union[str, torch.device]): The device to use. Defaults to "cpu".
+    """
+    
+    def __init__(
+        self,
+        episodes_dbs: List[EpisodesDB],
+        percentage_episodes: float = 1.0,
+        batch_size: int = 1,
+        context_size: int = 0,
+        padding_size_begin: int = 0,
+        padding_size_end: int = 0,
+        padding_value_begin: float = 0,
+        padding_value_end: float = 0,
+        reward_scale_w: float = 1.0,
+        reward_scale_b: float = 0.0,
+        seed: Optional[int] = None,
+        device: Union[str, torch.device] = "cpu") -> None:
+
+        min_ep_len = min([len(episodes_db) for episodes_db in episodes_dbs])
+        n_episodes = int(min_ep_len * percentage_episodes)
+        
+        super().__init__(
+            episodes_dbs=episodes_dbs,
+            n_episodes=n_episodes,
+            batch_size=batch_size,
+            context_size=context_size,
+            padding_size_begin=padding_size_begin,
+            padding_size_end=padding_size_end,
+            padding_value_begin=padding_value_begin,
+            padding_value_end=padding_value_end,
+            reward_scale_w=reward_scale_w,
+            reward_scale_b=reward_scale_b,
+            seed=seed,
+            device=device
+        )
+
+        # dataset
+
+        self._dataset: Dict[str, np.ndarray] = None
+        self._n_frames: int = None      
+    
+    def __repr__(self) -> str:
+        repr = ""
+        repr += "\n- Sampler configuration :"
+        repr += "\n\t* episodes_dbs :"
+        for episodes_db in self._episodes_dbs: 
+            repr += "\n\t  - {}".format(episodes_db)
+        repr += "\n\t* using : {} episodes per episodes_db".format(self._n_episodes[0])
+        repr += "\n\t* dataset size : {}".format(len(self))
+        repr += "\n\t* batch size : {}".format(self._batch_size)
+        repr += "\n\t* context size : {}".format(self._context_size)
+        repr += "\n\t* padding size begin : {}".format(self._padding_size_begin)
+        repr += "\n\t* padding size end : {}".format(self._padding_size_end)
+        repr += "\n\t* padding value begin : {}".format(self._padding_value_begin)
+        repr += "\n\t* padding value end : {}".format(self._padding_value_end)
+        repr += "\n\t* reward scale weight : {}".format(self._reward_scale_w)
+        repr += "\n\t* reward scale bias : {}".format(self._reward_scale_b)
+        repr += "\n\t* seed : {}".format(self._seed)
+        repr += "\n\t* device : {}".format(self._device)
+        return repr
+
+    @torch.no_grad()
+    def _get_episode(self, i, episode_id: str) -> Dict[str, torch.Tensor]:
+
+        # get episode from database
+
+        episode_dict:Dict[str, torch.Tensor] = self._episodes_dbs[i][(episode_id,0)]
+
+        # reward scaling
+        episode_dict["reward"] = self._reward_scale_w * episode_dict["reward"] + self._reward_scale_b
+        
+        # padding
+
+        for k, v in episode_dict.items():
+            
+            v_contiguous = []
+
+            # begin
+            if self._padding_size_begin > 0: 
+                v_contiguous.append(torch.full((1, self._padding_size_begin, *v.shape[2:]), self._padding_value_begin, dtype=v.dtype, device=v.device))
+            # middle
+            v_contiguous.append(v)
+            # end
+            if self._padding_size_end > 0:
+                v_contiguous.append(torch.full((1, self._padding_size_end, *v.shape[2:]), self._padding_value_end, dtype=v.dtype, device=v.device))
+            
+            episode_dict[k] = torch.cat(v_contiguous, dim=1).contiguous()
+        
+        # padding mask
+        
+        is_padding = torch.zeros(1, self._padding_size_begin + self._episodes_lengths[episode_id] + self._padding_size_end, dtype=torch.bool)
+        task_idx = (i+1) * torch.ones(1, self._padding_size_begin + self._episodes_lengths[episode_id] + self._padding_size_end, 1, dtype=torch.long) 
+        if self._padding_size_begin > 0: is_padding[:,:self._padding_size_begin] = True
+        if self._padding_size_end > 0: is_padding[:,-self._padding_size_end:] = True
+        episode_dict["is_padding"] = is_padding
+        episode_dict["task_idx"] = task_idx
+
+        return episode_dict
+    
+    @torch.no_grad()
+    def initialize(self, verbose: bool = False, desc: str = "Initializing sampler...", **kwargs) -> None:
+
+        disable_tqdm = not verbose
+
+        dataset: Dict[str, List[np.ndarray]] = {}
+
+        for i in range(len(self._episodes_dbs)):
+
+            for episode_id in tqdm(self._episodes_ids[i], disable=disable_tqdm, desc=desc):
+                
+                episode_dict = self._get_episode(i,episode_id)
+                episode_dict = {k: v.cpu().numpy() for k,v in episode_dict.items()}
+                
+                frames = {k: [episode_dict[k][:,t:t+self._context_size+1] for t in range(self._episodes_lengths[i][episode_id])] for k in episode_dict.keys()}
+                frames = {k: np.concatenate(v,axis=0) for k,v in frames.items()}
+
+                if not dataset: dataset = {k: [] for k in frames.keys()}
+                for k,v in frames.items():
+                    dataset[k].append(v)
+            
+        self._dataset = {k: np.concatenate(v,axis=0) for k,v in dataset.items()}
+        self._n_frames = len(self._dataset["is_padding"])
+    
+    @torch.no_grad()
+    def normalizer_values(self) -> Dict[str, Dict[str, torch.Tensor]]:
+        results: Dict[str, Dict[str, torch.Tensor]] = {}
+        for k,v in self._dataset.items():
+            if k.startswith("observation/"):
+                tensor_v = torch.as_tensor(v, device=self._device).view(-1, v.shape[-1])
+                results[k.split("/")[1]] = {
+                    "mean": tensor_v.mean(dim=0),
+                    "std": tensor_v.std(dim=0) + 1e-6,
+                    "min": tensor_v.min(dim=0),
+                    "max": tensor_v.max(dim=0)
+                }
+        return results
+    
+    @torch.no_grad()
+    def sample_batch(self) -> Union[Dict[str, torch.Tensor], None]:
+        """
+        Sample a batch of frames (or episodes) from the database.
+
+        Returns:
+            
+        """
+        idxs = np.random.randint(0, self._n_frames, self._batch_size)
+        batch = {k: torch.as_tensor(v[idxs], device=self._device) for k,v in self._dataset.items()}
+        return batch
+
+    def __len__(self) -> int:
+        """
+        Return the total number of elements in the dataset.
+        """
+        return self._n_frames

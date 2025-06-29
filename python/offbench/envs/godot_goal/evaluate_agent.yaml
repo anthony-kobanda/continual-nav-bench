@@ -1,0 +1,182 @@
+#? the descriptions of most of the following parameters are given in the files they're used
+
+####################
+# ENVIRONMENT  CFG #
+####################
+
+env: simpletown
+maze: maze_0
+task: null
+
+############
+# EXE USED #
+############
+
+run:
+  exe: null
+  headless: true
+
+####################
+# APPPLICATION CFG #
+####################
+
+application:  
+
+  host: localhost
+  port: 8000
+
+  session_track_configuration:
+    ressources:
+      - name: db
+        type: db
+      - name: pipe
+        type: web_socket
+        url: ${application.host}:${application.port}/event
+    decorators:
+      sensor:
+        type: db
+        db: db
+      action:
+        type: track_last_frame
+        db: db
+        pipe: pipe
+
+  session_serve_configuration:
+    ressources:
+      - name: db
+        type: db
+      - name: pipe
+        type: web_socket
+        url: ${application.host}:${application.port}/event
+    decorators:
+      sensor:
+        type: db
+        db: db
+      action:
+        type: serve_last_frame
+        db: db
+        pipe: pipe
+
+  tracking_configuration:
+
+    config: 
+      ressources: {}
+      decorators:
+        config:
+          type: value
+          value: 
+            seed: null
+            n_players: 1
+            n_episodes_per_player: 1
+            speedup: 100000.0
+            max_episode_steps: 1000
+            action_every_n_frames: 6
+            map_name: simpletown_0
+            gravity: 50.0
+            walk_speed: 2.0
+            run_speed: 5.0
+            jump_strength: 15.0
+            use_raycasts: true
+            use_image: false
+    
+    # MAX 100 PLAYERS SIMULTANEOUSLY
+    player_0: ${application.session_serve_configuration}
+    player_1: ${application.session_serve_configuration}
+    player_2: ${application.session_serve_configuration}
+    player_3: ${application.session_serve_configuration}
+    player_4: ${application.session_serve_configuration}
+    player_5: ${application.session_serve_configuration}
+    player_6: ${application.session_serve_configuration}
+    player_7: ${application.session_serve_configuration}
+    player_8: ${application.session_serve_configuration}
+    player_9: ${application.session_serve_configuration}
+    player_10: ${application.session_serve_configuration}
+    player_11: ${application.session_serve_configuration}
+    player_12: ${application.session_serve_configuration}
+    player_13: ${application.session_serve_configuration}
+    player_14: ${application.session_serve_configuration}
+    player_15: ${application.session_serve_configuration}
+    player_16: ${application.session_serve_configuration}
+    player_17: ${application.session_serve_configuration}
+    player_18: ${application.session_serve_configuration}
+    player_19: ${application.session_serve_configuration}
+    player_20: ${application.session_serve_configuration}
+    player_21: ${application.session_serve_configuration}
+    player_22: ${application.session_serve_configuration}
+    player_23: ${application.session_serve_configuration}
+    player_24: ${application.session_serve_configuration}
+    player_25: ${application.session_serve_configuration}
+    player_26: ${application.session_serve_configuration}
+    player_27: ${application.session_serve_configuration}
+    player_28: ${application.session_serve_configuration}
+    player_29: ${application.session_serve_configuration}
+    player_30: ${application.session_serve_configuration}
+    player_31: ${application.session_serve_configuration}
+    player_32: ${application.session_serve_configuration}
+    player_33: ${application.session_serve_configuration}
+    player_34: ${application.session_serve_configuration}
+    player_35: ${application.session_serve_configuration}
+    player_36: ${application.session_serve_configuration}
+    player_37: ${application.session_serve_configuration}
+    player_38: ${application.session_serve_configuration}
+    player_39: ${application.session_serve_configuration}
+    player_40: ${application.session_serve_configuration}
+    player_41: ${application.session_serve_configuration}
+    player_42: ${application.session_serve_configuration}
+    player_43: ${application.session_serve_configuration}
+    player_44: ${application.session_serve_configuration}
+    player_45: ${application.session_serve_configuration}
+    player_46: ${application.session_serve_configuration}
+    player_47: ${application.session_serve_configuration}
+    player_48: ${application.session_serve_configuration}
+    player_49: ${application.session_serve_configuration}
+    player_50: ${application.session_serve_configuration}
+    player_51: ${application.session_serve_configuration}
+    player_52: ${application.session_serve_configuration}
+    player_53: ${application.session_serve_configuration}
+    player_54: ${application.session_serve_configuration}
+    player_55: ${application.session_serve_configuration}
+    player_56: ${application.session_serve_configuration}
+    player_57: ${application.session_serve_configuration}
+    player_58: ${application.session_serve_configuration}
+    player_59: ${application.session_serve_configuration}
+    player_60: ${application.session_serve_configuration}
+    player_61: ${application.session_serve_configuration}
+    player_62: ${application.session_serve_configuration}
+    player_63: ${application.session_serve_configuration}
+    player_64: ${application.session_serve_configuration}
+    player_65: ${application.session_serve_configuration}
+    player_66: ${application.session_serve_configuration}
+    player_67: ${application.session_serve_configuration}
+    player_68: ${application.session_serve_configuration}
+    player_69: ${application.session_serve_configuration}
+    player_70: ${application.session_serve_configuration}
+    player_71: ${application.session_serve_configuration}
+    player_72: ${application.session_serve_configuration}
+    player_73: ${application.session_serve_configuration}
+    player_74: ${application.session_serve_configuration}
+    player_75: ${application.session_serve_configuration}
+    player_76: ${application.session_serve_configuration}
+    player_77: ${application.session_serve_configuration}
+    player_78: ${application.session_serve_configuration}
+    player_79: ${application.session_serve_configuration}
+    player_80: ${application.session_serve_configuration}
+    player_81: ${application.session_serve_configuration}
+    player_82: ${application.session_serve_configuration}
+    player_83: ${application.session_serve_configuration}
+    player_84: ${application.session_serve_configuration}
+    player_85: ${application.session_serve_configuration}
+    player_86: ${application.session_serve_configuration}
+    player_87: ${application.session_serve_configuration}
+    player_88: ${application.session_serve_configuration}
+    player_89: ${application.session_serve_configuration}
+    player_90: ${application.session_serve_configuration}
+    player_91: ${application.session_serve_configuration}
+    player_92: ${application.session_serve_configuration}
+    player_93: ${application.session_serve_configuration}
+    player_94: ${application.session_serve_configuration}
+    player_95: ${application.session_serve_configuration}
+    player_96: ${application.session_serve_configuration}
+    player_97: ${application.session_serve_configuration}
+    player_98: ${application.session_serve_configuration}
+    player_99: ${application.session_serve_configuration}

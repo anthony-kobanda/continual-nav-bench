@@ -1,0 +1,24 @@
+{
+    "MD033": {
+        "allowed_elements": [
+            "a",
+            "br",
+            "div",
+            "h2",
+            "img",
+            "nobr",
+            "p",
+            "strong",
+            "summary",
+            "sup",
+            "table",
+            "td",
+            "tr",
+            "ul",
+            "video"
+        ]
+    },
+    "MD013": {
+        "line_length": 9999
+    }
+}

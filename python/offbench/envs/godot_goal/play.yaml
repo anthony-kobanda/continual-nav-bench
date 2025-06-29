@@ -1,0 +1,82 @@
+#? the descriptions of most of the following parameters are given in the files they're used
+
+####################
+# ENVIRONMENT  CFG #
+####################
+
+env: simpletown
+maze: maze_0
+task: null
+
+############
+# EXE USED #
+############
+
+run:
+  exe: null
+  headless: true
+
+####################
+# APPPLICATION CFG #
+####################
+
+application:  
+
+  host: localhost
+  port: 8000
+
+  session_track_configuration:
+    ressources:
+      - name: db
+        type: db
+      - name: pipe
+        type: web_socket
+        url: ${application.host}:${application.port}/event
+    decorators:
+      sensor:
+        type: db
+        db: db
+      action:
+        type: track_last_frame
+        db: db
+        pipe: pipe
+
+  session_serve_configuration:
+    ressources:
+      - name: db
+        type: db
+      - name: pipe
+        type: web_socket
+        url: ${application.host}:${application.port}/event
+    decorators:
+      sensor:
+        type: db
+        db: db
+      action:
+        type: serve_last_frame
+        db: db
+        pipe: pipe
+
+  tracking_configuration:
+
+    config: 
+      ressources: {}
+      decorators:
+        config:
+          type: value
+          value: 
+            seed: null
+            n_players: 1
+            n_episodes_per_player: 1
+            speedup: 1.0
+            max_episode_steps: 1000
+            action_every_n_frames: 6
+            map_name: simpletown_0
+            gravity: 50.0
+            walk_speed: 2.0
+            run_speed: 5.0
+            jump_strength: 15.0
+            use_raycasts: true
+            use_image: false
+    
+    player_0: ${application.session_track_configuration}

@@ -1,0 +1,46 @@
+#? the descriptions of most of the following parameters are given in the files they're used
+
+#############
+# HYDRA CFG #
+#############
+
+defaults:
+  - _self_
+  - override hydra/launcher: joblib
+
+###############
+# PLAYING CFG #
+###############
+
+# general
+#########
+
+task: amazeville-maze_1-high
+
+save_episodes: false
+
+# if save_episodes :
+# - if dataset_name is null     : the generated episodes will be saved in the folder of the corresponding task
+# - if dataset_name is not null : the generated episodes will be saved in : f"../datasets/{dataset_path}/"
+dataset_path: random/${task}
+
+seed: 0
+
+verbose: true
+
+# configuration of the task
+###########################
+
+task_cfg:
+  task_name: ${environment}
+  episodes_db_cfg:
+    classname: offbench.data.episodes_db.GodotGoalEpisodesDB
+    env: ${task_cfg.task_name}
+
+# configuration of the play session
+###################################
+
+n_episodes: 10            # number of episodes to play
+max_episode_steps: 300    # maximum number of steps in an episode
+max_episodes_db_len: 1000 # maximum number of episodes in the dataset
+exe_type: windows         # type of the executable (windows, ubuntu_2004, ubuntu_2204)
