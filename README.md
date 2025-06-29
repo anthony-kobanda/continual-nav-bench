@@ -7,7 +7,7 @@
             &emsp;
             &emsp;
             &emsp;
-            <a href="https://sites.google.com/view/continual-nav-bench/home?authuser=2">Project Page</a>
+            <a href="https://sites.google.com/view/continual-nav-bench/home">Project Page</a>
             &emsp;
             &emsp;
             &emsp;
